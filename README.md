@@ -1,4 +1,4 @@
-# TradingAgents 中文增强版
+# TradingAgents 中文增强版 （扩展）
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
@@ -7,19 +7,23 @@
 [![Original](https://img.shields.io/badge/基于-TauricResearch/TradingAgents-orange.svg)](https://github.com/TauricResearch/TradingAgents)
 
 ---
+## 扩展目标
+- **最小侵入 (Minimal Invasiveness)**
+- **功能内聚 (Functional Cohesion)**
+- **服务解耦 (Service Decoupling)**
+- **可演进性 (Evolutionary Design)**
+- **可观测性 (Observability)**
+- **业务可扩展(Business Extensibility)**
+  
+### 🌟 扩展愿景
 
-## ⚠️ 重要版权声明与授权说明
+**将 TradingAgents-CN 从单一的交易执行框架，通过全过程Vibe Coding 的形式演进为：**
 
-### 🚨 版权侵权警告
+> **一个由专业化AI智能体组成的数字投行，具备完整的“研究-风控-决策-执行-合规”价值链，支持多资产、多策略、全球市场的智能化管理，并通过标准化接口实现无限的业务可扩展性。**
 
-**我们注意到 `tradingagents-ai.com` 网站未经授权使用了我们的专有代码，并声称是他们公司的产品。**
+### 📋 版本授权说明
 
-**⚠️ 重要提醒**：
-- ❌ **我们项目组目前没有给任何组织或个人进行过商业授权**
-- ❌ **该网站未经授权使用我们的代码，属于侵权行为**
-- ⚠️ **请大家注意识别，避免上当受骗**
-
-**✅ 官方唯一渠道**：
+**✅ Fork 来源**：
 - 📦 GitHub 仓库：https://github.com/hsliuping/TradingAgents-CN
 - 📧 官方邮箱：hsliup@163.com
 - 📱 微信公众号：TradingAgents-CN
