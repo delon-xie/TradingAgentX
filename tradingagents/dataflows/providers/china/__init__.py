@@ -27,6 +27,14 @@ except ImportError:
     BaostockProvider = None
     BAOSTOCK_AVAILABLE = False
 
+# 导入 Dolt 提供器
+try:
+    from .dolt import DoltProvider
+    DOLT_AVAILABLE = True
+except ImportError:
+    DoltProvider = None
+    DOLT_AVAILABLE = False
+
 # 导入基本面快照工具
 try:
     from .fundamentals_snapshot import get_fundamentals_snapshot
@@ -42,6 +50,8 @@ __all__ = [
     'TUSHARE_AVAILABLE',
     'BaostockProvider',
     'BAOSTOCK_AVAILABLE',
+    'DoltProvider',
+    'DOLT_AVAILABLE',
     'get_fundamentals_snapshot',
     'FUNDAMENTALS_SNAPSHOT_AVAILABLE',
 ]

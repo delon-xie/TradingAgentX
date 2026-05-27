@@ -8,6 +8,7 @@
 
 ---
 ## 扩展目标
+- **数据可靠性(Data Reliability​)** ： 增加 Dolt A股历史数据；增加 yfinance 、 futu 港股历史数据
 - **最小侵入 (Minimal Invasiveness)**
 - **功能内聚 (Functional Cohesion)**
 - **服务解耦 (Service Decoupling)**
