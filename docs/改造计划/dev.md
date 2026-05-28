@@ -36,6 +36,9 @@ npm audit fix
 # 进入项目目录
 cd TradingAgentsX    
 
+# 激活python虚拟环境
+source .venv/bin/activate  
+
 # 启动后端
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 # 或

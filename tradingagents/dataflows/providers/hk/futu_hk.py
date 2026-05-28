@@ -309,7 +309,7 @@ class FutuProvider(BaseStockDataProvider):
         end_date: Union[str, date] = None
     ) -> Optional[pd.DataFrame]:
         """
-        获取历史K线数据
+        获取历史K线数据（支持超过1000条记录，自动分批次获取）
         
         Args:
             symbol: 股票代码
@@ -329,10 +329,13 @@ class FutuProvider(BaseStockDataProvider):
             # 处理日期
             if isinstance(start_date, str):
                 start_date_str = start_date
+                start_date_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
             elif isinstance(start_date, (date, datetime)):
-                start_date_str = start_date.strftime('%Y-%m-%d')
+                start_date_dt = start_date if isinstance(start_date, datetime) else datetime.combine(start_date, datetime.min.time())
+                start_date_str = start_date_dt.strftime('%Y-%m-%d')
             else:
                 start_date_str = str(start_date)
+                start_date_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
             
             if end_date is None:
                 end_date_dt = datetime.now()
@@ -348,26 +351,83 @@ class FutuProvider(BaseStockDataProvider):
             logger.info(f"📊 获取历史数据: {normalized_symbol}, {start_date_str} 至 {end_date_str}")
             
             # 计算 K 线类型
-            kl_type = KLType.K_DAY if hasattr(KLType, 'K_DAY') else getattr(KLType, 'KL_DAY', None)  # 🔥 兼容不同版本
+            kl_type = KLType.K_DAY if hasattr(KLType, 'K_DAY') else getattr(KLType, 'KL_DAY', None)
             if kl_type is None:
                 logger.error("❌ 无法找到正确的 KLType 枚举值")
                 return None
             
-            # 获取历史 K 线（🔥 注意：返回3个值）
-            ret, data, page_req_key = self.quote_ctx.request_history_kline(
-                code=normalized_symbol,
-                start=start_date_str,
-                end=end_date_str,
-                ktype=kl_type,
-                autype=AuType.QFQ if hasattr(AuType, 'QFQ') else getattr(AuType, 'AU_TYPE_QFQ', None)  # 🔥 兼容不同版本
-            )
+            # 计算总天数
+            total_days = (end_date_dt - start_date_dt).days
+            logger.info(f"📅 总天数为: {total_days} 天")
             
-            if ret != RET_OK or data is None or data.empty:
+            # 获取复权类型
+            autype = AuType.QFQ if hasattr(AuType, 'QFQ') else getattr(AuType, 'AU_TYPE_QFQ', None)
+            
+            all_data = []
+            page_req_key = None
+            batch_count = 0
+            
+            # 分批次获取数据
+            while True:
+                batch_count += 1
+                logger.info(f"📦 开始第 {batch_count} 批次数据获取...")
+                
+                # 获取历史 K 线
+                if batch_count == 1:
+                    # 第一次请求，指定完整的日期范围
+                    ret, data, page_req_key = self.quote_ctx.request_history_kline(
+                        code=normalized_symbol,
+                        start=start_date_str,
+                        end=end_date_str,
+                        ktype=kl_type,
+                        max_count=1000,  # 单次最多1000条
+                        autype=autype
+                    )
+                else:
+                    # 后续请求使用分页令牌
+                    if page_req_key is None:
+                        break
+                    ret, data, page_req_key = self.quote_ctx.request_history_kline(
+                        code=normalized_symbol,
+                        start=start_date_str,
+                        end=end_date_str,
+                        ktype=kl_type,
+                        max_count=1000,
+                        autype=autype,
+                        page_req_key=page_req_key
+                    )
+                
+                if ret != RET_OK:
+                    logger.warning(f"⚠️ 第 {batch_count} 批次获取数据失败")
+                    break
+                
+                if data is None or data.empty:
+                    logger.info(f"ℹ️ 第 {batch_count} 批次无数据")
+                    break
+                
+                logger.info(f"✅ 第 {batch_count} 批次获取到 {len(data)} 条记录")
+                all_data.append(data)
+                
+                # 检查是否还有更多数据
+                if page_req_key is None or page_req_key == "":
+                    logger.info("🎯 已获取所有数据")
+                    break
+            
+            if not all_data:
                 logger.warning(f"⚠️ 未找到股票 {normalized_symbol} 的历史数据")
                 return None
-
+            
+            # 合并所有批次的数据
+            combined_data = pd.concat(all_data, ignore_index=True)
+            
+            # 去重处理（可能有重叠的数据）
+            combined_data = combined_data.drop_duplicates(subset=['time_key'])
+            combined_data = combined_data.sort_values('time_key').reset_index(drop=True)
+            
+            logger.info(f"📈 合并后总数据量: {len(combined_data)} 条")
+            
             # 重置索引
-            df = data.reset_index(drop=True)
+            df = combined_data.reset_index(drop=True)
             
             # 重命名列以符合标准格式
             df = df.rename(columns={
@@ -402,13 +462,17 @@ class FutuProvider(BaseStockDataProvider):
             existing_columns = [col for col in columns_order if col in df.columns]
             df = df[existing_columns]
             
+            # 检查数据是否完整
+            expected_days = min(total_days, len(df) + 100)  # 考虑周末和节假日
+            if len(df) < expected_days * 0.7:  # 如果获取的数据少于预期的70%
+                logger.warning(f"⚠️ 获取的数据量可能不完整: 预期约{expected_days}天，实际{len(df)}条")
+                
             logger.info(f"✅ 成功获取 {len(df)} 条历史数据记录")
             return df
             
         except Exception as e:
             logger.error(f"❌ 获取历史数据失败 {symbol}: {e}", exc_info=True)
-            return None
-    
+            return None    
     async def get_stock_basic_info(self, symbol: str = None) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
         """
         获取股票基础信息
