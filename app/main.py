@@ -569,6 +569,32 @@ async def lifespan(app: FastAPI):
         else:
             logger.info(f"📰 新闻数据同步已配置（仅自选股）: {settings.NEWS_SYNC_CRON}")
 
+        # 🔥 配置 APScheduler 执行器，使用线程池避免阻塞事件循环
+        from apscheduler.executors.asyncio import AsyncIOExecutor
+        from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+        
+        # 为不同类型的任务配置不同的执行器
+        jobstores = {}
+        executors = {
+            'default': AsyncIOExecutor(),  # 默认使用异步执行器
+            'threadpool': ThreadPoolExecutor(max_workers=20),  # 线程池用于同步任务
+            'processpool': ProcessPoolExecutor(max_workers=5),  # 进程池用于CPU密集型任务
+        }
+        job_defaults = {
+            'coalesce': False,
+            'max_instances': 3,
+            'misfire_grace_time': 60,
+        }
+        
+        scheduler.configure(
+            jobstores=jobstores,
+            executors=executors,
+            job_defaults=job_defaults,
+            timezone=settings.TIMEZONE
+        )
+        
+        logger.info("✅ APScheduler 执行器配置完成（AsyncIO + ThreadPool + ProcessPool）")
+
         scheduler.start()
 
         # 设置调度器实例到服务中，以便API可以管理任务

@@ -646,8 +646,20 @@ class QuotesIngestionService:
 
             # 获取交易日
             try:
+                import asyncio
+                from concurrent.futures import ThreadPoolExecutor
+                
                 manager = DataSourceManager()
-                trade_date = manager.find_latest_trade_date_with_fallback() or datetime.now(self.tz).strftime("%Y%m%d")
+                
+                # 🔥 在线程池中执行同步方法，避免阻塞事件循环
+                loop = asyncio.get_event_loop()
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    trade_date = await loop.run_in_executor(
+                        executor,
+                        manager.find_latest_trade_date_with_fallback
+                    )
+                
+                trade_date = trade_date or datetime.now(self.tz).strftime("%Y%m%d")
             except Exception:
                 trade_date = datetime.now(self.tz).strftime("%Y%m%d")
 
