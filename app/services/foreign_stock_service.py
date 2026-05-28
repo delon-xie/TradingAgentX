@@ -1851,7 +1851,7 @@ class ForeignStockService:
         """
         import pandas as pd
         from datetime import datetime, timedelta
-        from tradingagents.dataflows.providers.hk.yfinance import YFinanceHKProvider
+        from tradingagents.dataflows.providers.hk.yfinance_hk import YFinanceHKProvider
         
         try:
             # 初始化 Provider

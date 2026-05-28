@@ -58,3 +58,5 @@ concurrent-log-handler>=0.9.24  # Windows 友好的日志轮转处理器
 
 #plugins
 pymysql
+futu-api>=10.6
+nest-asyncio>=1.5

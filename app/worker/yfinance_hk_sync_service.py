@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 
 from app.core.database import get_mongo_db
-from tradingagents.dataflows.providers.hk.yfinance import YFinanceHKProvider
+from tradingagents.dataflows.providers.hk.yfinance_hk import YFinanceHKProvider
 
 logger = logging.getLogger(__name__)
 

@@ -341,6 +341,7 @@
             
             <!-- 🔥 港股数据源 -->
             <template v-if="market === 'HK'">
+              <el-radio label="futu">Futu OpenAPI</el-radio>
               <el-radio label="yfinance_hk">Yahoo Finance 港股</el-radio>
               <el-radio label="akshare">AKShare（港股）</el-radio>
             </template>
@@ -355,7 +356,7 @@
           <!-- 🔥 提示信息 -->
           <div style="margin-top: 8px; font-size: 12px; color: #909399;">
             <template v-if="market === 'HK'">
-              💡 港股推荐使用 Yahoo Finance 港股数据源
+              💡 港股推荐使用 Futu OpenAPI（需安装 FutuOpenD）或 Yahoo Finance 港股数据源
             </template>
             <template v-else-if="market === 'US'">
               💡 美股数据同步功能开发中
@@ -534,8 +535,8 @@ const clearCacheLoading = ref(false)
 function showSyncDialog() {
   // 🔥 根据市场类型自动选择合适的数据源
   if (market.value === 'HK') {
-    // 港股默认使用 Yahoo Finance 港股
-    syncForm.dataSource = 'yfinance_hk'
+    // 港股默认使用 Futu OpenAPI（如果可用）或 Yahoo Finance 港股
+    syncForm.dataSource = 'futu'
   } else if (market.value === 'US') {
     // 美股默认使用 yfinance（如果有的话）
     syncForm.dataSource = 'tushare' // 暂时使用 tushare，后续可以添加美股数据源

@@ -167,6 +167,7 @@ class DataSourceType(str, Enum):
     YFINANCE_HK = "yfinance_hk"
     IMPROVED_HK = "improved_hk"
     HK_STOCK = "hk_stock"
+    FUTU = "futu"  # 🔥 Futu OpenAPI 港股数据源
 
     # 美股数据源
     FINNHUB = "finnhub"

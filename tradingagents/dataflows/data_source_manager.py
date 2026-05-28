@@ -37,6 +37,7 @@ class ChinaDataSource(Enum):
     AKSHARE = DataSourceCode.AKSHARE
     BAOSTOCK = DataSourceCode.BAOSTOCK
     DOLT = DataSourceCode.DOLT
+    FUTU = DataSourceCode.FUTU
 
 
 class USDataSource(Enum):

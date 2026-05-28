@@ -1764,6 +1764,70 @@ class ConfigService:
                         "response_time": time.time() - start_time,
                         "details": None
                     }
+            elif ds_type == "futu":
+                # 🔥 测试 Futu OpenAPI 连接
+                try:
+                    logger.info(f"🔌 [TEST] Testing Futu OpenAPI connection...")
+                    
+                    # 检查 futu-api 是否安装（兼容不同版本）
+                    try:
+                        import futu
+                        if not hasattr(futu, 'OpenQuoteContext'):
+                            raise ImportError("futu 模块缺少 OpenQuoteContext")
+                        OpenQuoteContext = futu.OpenQuoteContext
+                        RET_OK = getattr(futu, 'RET_OK', 0)
+                    except ImportError as e:
+                        return {
+                            "success": False,
+                            "message": f"futu-api 库未安装或版本不兼容: {e}",
+                            "response_time": time.time() - start_time,
+                            "details": None
+                        }
+                    
+                    # 获取连接参数（从配置或使用默认值）
+                    host = ds_config.config_params.get("host", "127.0.0.1") if ds_config.config_params else "127.0.0.1"
+                    port = ds_config.config_params.get("port", 11111) if ds_config.config_params else 11111
+                    
+                    logger.info(f"📍 [TEST] Connecting to FutuOpenD at {host}:{port}")
+                    
+                    # 创建连接并测试
+                    quote_ctx = OpenQuoteContext(host=host, port=port)
+                    
+                    try:
+                        ret, data = quote_ctx.get_global_state()
+                        
+                        if ret == RET_OK:
+                            response_time = time.time() - start_time
+                            logger.info(f"✅ [TEST] Futu OpenAPI connection successful (response time: {response_time:.2f}s)")
+                            
+                            return {
+                                "success": True,
+                                "message": f"成功连接到 Futu OpenAPI ({host}:{port})",
+                                "response_time": response_time,
+                                "details": {
+                                    "type": ds_type,
+                                    "host": host,
+                                    "port": port,
+                                    "test_result": "FutuOpenD 连接正常"
+                                }
+                            }
+                        else:
+                            return {
+                                "success": False,
+                                "message": f"Futu OpenAPI 连接失败: {data}",
+                                "response_time": time.time() - start_time,
+                                "details": None
+                            }
+                    finally:
+                        quote_ctx.close()
+                        
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "message": f"Futu OpenAPI 连接失败: {str(e)}",
+                        "response_time": time.time() - start_time,
+                        "details": None
+                    }
 
             else:
                 # 其他数据源类型 - 尝试从环境变量获取 API Key（如果需要）

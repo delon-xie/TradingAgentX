@@ -43,11 +43,12 @@ class DataSourceCode(str, Enum):
     YFINANCE_HK = "yfinance_hk"      # Yahoo Finance 港股数据
     IMPROVED_HK = "improved_hk"      # 改进版港股数据
     HK_STOCK = "hk_stock"            # 港股基础数据
-    
+    FUTU = "futu"                    # Futu OpenAPI - 富途牛牛开放接口
+
     # ==================== 专业数据源 ====================
     WIND = "wind"        # Wind 万得 - 专业金融终端
     CHOICE = "choice"    # 东方财富 Choice - 专业金融数据
-    
+
     # ==================== 其他数据源 ====================
     QUANDL = "quandl"        # Quandl - 经济和金融数据
     LOCAL_FILE = "local_file"  # 本地文件数据源
@@ -331,8 +332,22 @@ DATA_SOURCE_REGISTRY: Dict[str, DataSourceInfo] = {
         is_free=True,
         features=["基础信息", "行情数据", "港股专注"],
     ),
+    
+    # 🔥 Futu OpenAPI
+    DataSourceCode.FUTU: DataSourceInfo(
+        code="futu",
+        name="Futu",
+        display_name="Futu OpenAPI",
+        provider="富途牛牛",
+        description="富途牛牛开放接口，提供高质量的港股实时行情和历史数据",
+        supported_markets=["hk_stocks"],
+        requires_api_key=False,  # 需要登录富途账号，但不需要 API Key
+        is_free=True,
+        official_website="https://openapi.futunn.com/",
+        documentation_url="https://openapi.futunn.com/futu-api-doc/intro/ai.html",
+        features=["实时行情", "历史K线", "高质量数据", "低延迟", "需安装FutuOpenD"],
+    ),
 }
-
 
 # ==================== 辅助函数 ====================
 

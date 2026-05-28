@@ -154,7 +154,58 @@
         </el-alert>
       </template>
 
-      <!-- 标准 API 端点配置（非 Dolt 数据源） -->
+      <!-- 🔥 Futu OpenAPI 特殊配置 -->
+      <template v-else-if="formData.type === 'futu'">
+        <el-form-item label="FutuOpenD 主机地址" prop="config_params.host">
+          <el-input
+            v-model="formData.config_params.host"
+            placeholder="127.0.0.1"
+          />
+        </el-form-item>
+
+        <el-form-item label="FutuOpenD 端口" prop="config_params.port">
+          <el-input-number
+            v-model="formData.config_params.port"
+            :min="1"
+            :max="65535"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="启用加密" prop="config_params.is_encrypt">
+          <el-switch
+            v-model="formData.config_params.is_encrypt"
+            active-text="是"
+            inactive-text="否"
+          />
+        </el-form-item>
+
+        <el-alert
+          title="💡 Futu OpenAPI 配置提示"
+          type="info"
+          :closable="false"
+          class="mb-4"
+        >
+          <template #default>
+            <div>
+              <p>Futu OpenAPI 需要安装并运行 FutuOpenD：</p>
+              <ul style="margin: 8px 0; padding-left: 20px;">
+                <li>下载 FutuOpenD：<a href="https://openapi.futunn.com/" target="_blank">https://openapi.futunn.com/</a></li>
+                <li>安装并启动 FutuOpenD</li>
+                <li>登录富途牛牛账号</li>
+                <li>默认连接地址：<code>127.0.0.1:11111</code></li>
+              </ul>
+              <p>Python SDK 安装：</p>
+              <code style="display: block; background: #f5f7fa; padding: 8px; margin-top: 8px; border-radius: 4px;">
+                pip install futu-api
+              </code>
+            </div>
+          </template>
+        </el-alert>
+      </template>
+
+      <!-- 标准 API 端点配置（非 Dolt/Futu 数据源） -->
       <el-form-item v-else label="API端点" prop="endpoint">
         <el-input
           v-model="formData.endpoint"
@@ -426,6 +477,17 @@ const handleTypeChange = () => {
       formData.value.api_key = ''
       formData.value.endpoint = ''
       console.log('✅ 已初始化 Dolt 配置参数')
+    } else if (selectedType === 'futu') {
+      // 🔥 Futu OpenAPI：初始化连接配置
+      formData.value.config_params = {
+        host: '127.0.0.1',
+        port: 11111,
+        is_encrypt: false
+      }
+      // 清空不需要的字段
+      formData.value.api_key = ''
+      formData.value.endpoint = ''
+      console.log('✅ 已初始化 Futu OpenAPI 配置参数')
     } else {
       // 其他数据源：清空 config_params
       formData.value.config_params = {}
@@ -490,15 +552,26 @@ const dataSourceTypes = [
     label: 'Dolt',
     value: 'dolt',
     register_url: 'https://www.dolthub.com/',
-    register_guide: 'Dolt 是带版本控制的 SQL 数据库，可以本地部署。查看文档了解如何设置：'
+    register_guide: 'Dolt 是带版本控制的 SQL 数据库，可以本地部署。查看文档了解如何设置：',
+    market_categories: ['a_shares']
   },
 
   // 港股数据源
   {
+    label: 'Futu OpenAPI',
+    value: 'futu',
+    register_url: 'https://openapi.futunn.com/',
+    register_guide: '富途牛牛开放接口，需要下载 FutuOpenD 并运行。访问官网了解更多：',
+    market_categories: ['hk_stocks'],
+    requires_setup: true,
+    setup_instructions: '1. 下载 FutuOpenD: https://openapi.futunn.com/\n2. 安装并运行 FutuOpenD\n3. 默认连接地址: 127.0.0.1:11111'
+  },
+  {
     label: 'Yahoo Finance 港股',
     value: 'yfinance_hk',
     register_url: 'https://finance.yahoo.com/',
-    register_guide: 'Yahoo Finance 提供免费的港股数据，无需注册即可使用。访问官网了解更多：'
+    register_guide: 'Yahoo Finance 提供免费的港股数据，无需注册即可使用。访问官网了解更多：',
+    market_categories: ['hk_stocks']
   },
   {
     label: '改进版港股数据',

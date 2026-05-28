@@ -11,6 +11,7 @@ from .tushare_adapter import TushareAdapter
 from .akshare_adapter import AKShareAdapter
 from .baostock_adapter import BaoStockAdapter
 from .dolt_adapter import DoltAdapter
+from .futu_adapter import FutuAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class DataSourceManager:
             AKShareAdapter(),
             BaoStockAdapter(),
             DoltAdapter(),
+            FutuAdapter(),  # 🔥 新增 Futu 适配器
         ]
 
         # 从数据库加载优先级配置

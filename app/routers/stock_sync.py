@@ -15,6 +15,7 @@ from app.worker.akshare_sync_service import get_akshare_sync_service
 from app.worker.financial_data_sync_service import get_financial_sync_service
 from app.worker.dolt_sync_service import get_dolt_sync_service
 from app.worker.yfinance_hk_sync_service import get_yfinance_hk_sync_service
+from app.worker.futu_sync_service import get_futu_sync_service
 import logging
 import asyncio
 from datetime import datetime, timedelta
@@ -163,9 +164,18 @@ async def sync_single_stock(
 
                 # 🔥 单个股票实时行情同步：优先使用 AKShare（避免 Tushare 接口限制）
                 actual_data_source = request.data_source
+                
+                # 🔥 对于港股，如果使用 tushare，自动切换到 futu 或 yfinance_hk
                 if request.data_source == "tushare":
-                    logger.info(f"💡 单个股票实时行情同步，自动切换到 AKShare 数据源（避免 Tushare 接口限制）")
-                    actual_data_source = "akshare"
+                    # 检测是否为港股
+                    symbol_upper = str(request.symbol).upper()
+                    if '.HK' in symbol_upper or (symbol_upper.isdigit() and len(symbol_upper) <= 5):
+                        logger.info(f"💡 检测到港股，自动切换到 Futu 数据源")
+                        actual_data_source = "futu"
+                    else:
+                        logger.info(f"💡 单个股票实时行情同步，自动切换到 AKShare 数据源（避免 Tushare 接口限制）")
+                        actual_data_source = "akshare"
+                
                 realtime_debug["data_source_used"] = actual_data_source
                 realtime_debug["attempted_sources"].append(actual_data_source)
 
@@ -177,14 +187,22 @@ async def sync_single_stock(
                     service = await get_dolt_sync_service()
                 elif actual_data_source == "yfinance_hk":
                     service = await get_yfinance_hk_sync_service()
+                elif actual_data_source == "futu":
+                    service = await get_futu_sync_service()
                 else:
                     raise ValueError(f"不支持的数据源: {actual_data_source}")
 
                 # 同步实时行情（只同步指定的股票）
-                realtime_result = await service.sync_realtime_quotes(
-                    symbols=[request.symbol],
-                    force=True  # 强制执行，跳过交易时间检查
-                )
+                if actual_data_source == "futu":
+                    # 🔥 Futu 不支持 force 参数
+                    realtime_result = await service.sync_realtime_quotes(
+                        symbols=[request.symbol]
+                    )
+                else:
+                    realtime_result = await service.sync_realtime_quotes(
+                        symbols=[request.symbol],
+                        force=True  # 强制执行，跳过交易时间检查
+                    )
                 realtime_debug["primary_stats"] = realtime_result
                 if realtime_result.get("errors"):
                     realtime_debug["primary_error"] = realtime_result["errors"][0]
@@ -211,6 +229,12 @@ async def sync_single_stock(
                         logger.error(f"❌ Tushare 服务不可用，无法回退")
                         realtime_result["fallback_failed"] = True
                         realtime_debug["fallback_error"] = {"error": "Tushare 服务不可用，无法回退", "context": "fallback_unavailable"}
+
+                # 🔥 记录 Futu 同步的详细结果
+                if actual_data_source == "futu":
+                    logger.info(f"📊 Futu 实时行情同步结果: {realtime_result}")
+                    if realtime_result.get("errors"):
+                        logger.error(f"❌ Futu 同步错误: {realtime_result['errors']}")
 
                 success = realtime_result.get("success_count", 0) > 0
 
@@ -248,10 +272,14 @@ async def sync_single_stock(
                 )
 
             except Exception as e:
+                import traceback
+                error_traceback = traceback.format_exc()
                 logger.error(f"❌ {request.symbol} 实时行情同步失败: {e}")
+                logger.error(f"📋 完整错误堆栈:\n{error_traceback}")
                 result["realtime_sync"] = {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "traceback": error_traceback  # 🔥 添加完整错误堆栈
                 }
         
         # 同步历史数据
@@ -266,6 +294,8 @@ async def sync_single_stock(
                     service = await get_dolt_sync_service()
                 elif request.data_source == "yfinance_hk":
                     service = await get_yfinance_hk_sync_service()
+                elif request.data_source == "futu":
+                    service = await get_futu_sync_service()
                 else:
                     raise ValueError(f"不支持的数据源: {request.data_source}")
 
@@ -317,16 +347,20 @@ async def sync_single_stock(
                 #             logger.warning(f"⚠️ {request.symbol} 实时行情自动同步失败: {e}")
 
             except Exception as e:
+                import traceback
+                error_traceback = traceback.format_exc()
                 logger.error(f"❌ {request.symbol} 历史数据同步失败: {e}")
+                logger.error(f"📋 完整错误堆栈:\n{error_traceback}")
                 result["historical_sync"] = {
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
+                    "traceback": error_traceback  # 🔥 添加完整错误堆栈
                 }
         
         # 同步财务数据
         if request.sync_financial:
             try:
-                # 🔥 对于 yfinance_hk，使用专门的同步服务
+                # 🔥 对于 yfinance_hk 和 futu，使用专门的同步服务
                 if request.data_source == "yfinance_hk":
                     service = await get_yfinance_hk_sync_service()
                     
@@ -341,6 +375,14 @@ async def sync_single_stock(
                         "message": f"财务数据同步{'成功' if success else '失败'}"
                     }
                     logger.info(f"✅ {request.symbol} 财务数据同步完成: {success}")
+                
+                elif request.data_source == "futu":
+                    # Futu API 暂不支持财务数据
+                    result["financial_sync"] = {
+                        "success": True,
+                        "message": "Futu API 暂不支持财务数据同步，已跳过"
+                    }
+                    logger.info(f"ℹ️ {request.symbol} 财务数据同步已跳过（Futu 不支持）")
                 
                 else:
                     financial_service = await get_financial_sync_service()
@@ -368,9 +410,23 @@ async def sync_single_stock(
         # 同步基础数据
         if request.sync_basic:
             try:
-                # 🔥 对于 yfinance_hk，使用专门的同步服务
+                # 🔥 对于 yfinance_hk 和 futu，使用专门的同步服务
                 if request.data_source == "yfinance_hk":
                     service = await get_yfinance_hk_sync_service()
+                    
+                    basic_result = await service.sync_basic_info(
+                        symbols=[request.symbol]
+                    )
+                    
+                    success = basic_result.get("success_count", 0) > 0
+                    result["basic_sync"] = {
+                        "success": success,
+                        "message": f"基础数据同步{'成功' if success else '失败'}"
+                    }
+                    logger.info(f"✅ {request.symbol} 基础数据同步完成: {success}")
+                
+                elif request.data_source == "futu":
+                    service = await get_futu_sync_service()
                     
                     basic_result = await service.sync_basic_info(
                         symbols=[request.symbol]
