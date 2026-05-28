@@ -11,9 +11,8 @@
         <el-button @click="onToggleFavorite">
           <el-icon><Star /></el-icon> {{ isFav ? '已自选' : '加自选' }}
         </el-button>
-        <!-- 🔥 港股和美股不显示"同步数据"按钮 -->
+        <!-- 🔥 所有股票都显示"同步数据"按钮 -->
         <el-button
-          v-if="market !== 'HK' && market !== 'US'"
           type="primary"
           @click="showSyncDialog"
           :loading="syncLoading"
@@ -333,9 +332,38 @@
         </el-form-item>
         <el-form-item label="数据源">
           <el-radio-group v-model="syncForm.dataSource">
-            <el-radio label="tushare">Tushare</el-radio>
-            <el-radio label="akshare">AKShare</el-radio>
+            <!-- 🔥 A股数据源 -->
+            <template v-if="market !== 'HK' && market !== 'US'">
+              <el-radio label="tushare">Tushare</el-radio>
+              <el-radio label="akshare">AKShare</el-radio>
+              <el-radio label="dolt">Dolt</el-radio>
+            </template>
+            
+            <!-- 🔥 港股数据源 -->
+            <template v-if="market === 'HK'">
+              <el-radio label="yfinance_hk">Yahoo Finance 港股</el-radio>
+              <el-radio label="akshare">AKShare（港股）</el-radio>
+            </template>
+            
+            <!-- 🔥 美股数据源（暂时使用通用数据源） -->
+            <template v-if="market === 'US'">
+              <el-radio label="tushare">Tushare（美股）</el-radio>
+              <el-radio label="akshare">AKShare（美股）</el-radio>
+            </template>
           </el-radio-group>
+          
+          <!-- 🔥 提示信息 -->
+          <div style="margin-top: 8px; font-size: 12px; color: #909399;">
+            <template v-if="market === 'HK'">
+              💡 港股推荐使用 Yahoo Finance 港股数据源
+            </template>
+            <template v-else-if="market === 'US'">
+              💡 美股数据同步功能开发中
+            </template>
+            <template v-else>
+              💡 A股推荐使用 Dolt 或 AKShare 数据源
+            </template>
+          </div>
         </el-form-item>
         <el-form-item label="历史数据天数" v-if="syncForm.syncTypes.includes('historical')">
           <el-input-number v-model="syncForm.days" :min="1" :max="3650" />
@@ -495,7 +523,7 @@ const syncDialogVisible = ref(false)
 const syncLoading = ref(false)
 const syncForm = reactive({
   syncTypes: ['realtime'],  // 默认选中实时行情
-  dataSource: 'tushare' as 'tushare' | 'akshare',
+  dataSource: 'tushare' as 'tushare' | 'akshare' | 'dolt' | 'yfinance_hk',
   days: 365
 })
 
@@ -504,6 +532,18 @@ const clearCacheLoading = ref(false)
 
 // 显示同步对话框
 function showSyncDialog() {
+  // 🔥 根据市场类型自动选择合适的数据源
+  if (market.value === 'HK') {
+    // 港股默认使用 Yahoo Finance 港股
+    syncForm.dataSource = 'yfinance_hk'
+  } else if (market.value === 'US') {
+    // 美股默认使用 yfinance（如果有的话）
+    syncForm.dataSource = 'tushare' // 暂时使用 tushare，后续可以添加美股数据源
+  } else {
+    // A股默认使用 Dolt（如果可用）或 AKShare
+    syncForm.dataSource = 'dolt'
+  }
+  
   syncDialogVisible.value = true
 }
 

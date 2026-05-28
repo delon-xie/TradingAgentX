@@ -161,6 +161,12 @@ class DataSourceType(str, Enum):
     TUSHARE = "tushare"
     AKSHARE = "akshare"
     BAOSTOCK = "baostock"
+    DOLT = "dolt"
+
+    # 港股数据源
+    YFINANCE_HK = "yfinance_hk"
+    IMPROVED_HK = "improved_hk"
+    HK_STOCK = "hk_stock"
 
     # 美股数据源
     FINNHUB = "finnhub"

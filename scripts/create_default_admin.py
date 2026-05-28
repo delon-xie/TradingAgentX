@@ -26,8 +26,8 @@ from pymongo import MongoClient
 
 
 # 配置
-MONGO_URI = "mongodb://admin:tradingagents123@localhost:27017/tradingagentscn?authSource=admin"
-DB_NAME = "tradingagentscn"
+MONGO_URI = "mongodb://admin:tradingagents123@localhost:27017/tradingagents_v0_admin?authSource=admin"
+DB_NAME = "tradingagents_v0_admin"
 
 
 def hash_password(password: str) -> str:

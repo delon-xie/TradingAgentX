@@ -10,6 +10,7 @@ from .base import DataSourceAdapter
 from .tushare_adapter import TushareAdapter
 from .akshare_adapter import AKShareAdapter
 from .baostock_adapter import BaoStockAdapter
+from .dolt_adapter import DoltAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class DataSourceManager:
             TushareAdapter(),
             AKShareAdapter(),
             BaoStockAdapter(),
+            DoltAdapter(),
         ]
 
         # 从数据库加载优先级配置

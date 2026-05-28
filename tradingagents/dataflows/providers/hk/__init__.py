@@ -24,6 +24,14 @@ except ImportError:
     HKStockProvider = None
     HK_STOCK_AVAILABLE = False
 
+# 导入 Yahoo Finance 港股提供器
+try:
+    from .yfinance_hk import YFinanceHKProvider
+    YFINANCE_HK_AVAILABLE = True
+except ImportError:
+    YFinanceHKProvider = None
+    YFINANCE_HK_AVAILABLE = False
+
 __all__ = [
     'ImprovedHKStockProvider',
     'get_improved_hk_provider',
@@ -31,5 +39,7 @@ __all__ = [
     'HK_PROVIDER_AVAILABLE',
     'HKStockProvider',
     'HK_STOCK_AVAILABLE',
+    'YFinanceHKProvider',
+    'YFINANCE_HK_AVAILABLE',
 ]
 

@@ -27,7 +27,7 @@ async def example_basic_usage():
     
     # 方式2: 自定义连接字符串
     # provider = DoltProvider(
-    #     connection_string="mysql+pymysql://user:password@localhost:3310/investment_data"
+    #     connection_string="mysql+pymysql://root:@127.0.0.1:3310/investment_data"
     # )
     
     # 方式3: 使用额外参数

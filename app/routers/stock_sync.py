@@ -13,6 +13,8 @@ from app.core.database import get_mongo_db
 from app.worker.tushare_sync_service import get_tushare_sync_service
 from app.worker.akshare_sync_service import get_akshare_sync_service
 from app.worker.financial_data_sync_service import get_financial_sync_service
+from app.worker.dolt_sync_service import get_dolt_sync_service
+from app.worker.yfinance_hk_sync_service import get_yfinance_hk_sync_service
 import logging
 import asyncio
 from datetime import datetime, timedelta
@@ -171,6 +173,10 @@ async def sync_single_stock(
                     service = await get_tushare_sync_service()
                 elif actual_data_source == "akshare":
                     service = await get_akshare_sync_service()
+                elif actual_data_source == "dolt":
+                    service = await get_dolt_sync_service()
+                elif actual_data_source == "yfinance_hk":
+                    service = await get_yfinance_hk_sync_service()
                 else:
                     raise ValueError(f"不支持的数据源: {actual_data_source}")
 
@@ -251,10 +257,15 @@ async def sync_single_stock(
         # 同步历史数据
         if request.sync_historical:
             try:
+                # 根据数据源选择对应的同步服务
                 if request.data_source == "tushare":
                     service = await get_tushare_sync_service()
                 elif request.data_source == "akshare":
                     service = await get_akshare_sync_service()
+                elif request.data_source == "dolt":
+                    service = await get_dolt_sync_service()
+                elif request.data_source == "yfinance_hk":
+                    service = await get_yfinance_hk_sync_service()
                 else:
                     raise ValueError(f"不支持的数据源: {request.data_source}")
 
@@ -315,20 +326,37 @@ async def sync_single_stock(
         # 同步财务数据
         if request.sync_financial:
             try:
-                financial_service = await get_financial_sync_service()
+                # 🔥 对于 yfinance_hk，使用专门的同步服务
+                if request.data_source == "yfinance_hk":
+                    service = await get_yfinance_hk_sync_service()
+                    
+                    fin_result = await service.sync_financial_data(
+                        symbols=[request.symbol],
+                        report_type="annual"
+                    )
+                    
+                    success = fin_result.get("success_count", 0) > 0
+                    result["financial_sync"] = {
+                        "success": success,
+                        "message": f"财务数据同步{'成功' if success else '失败'}"
+                    }
+                    logger.info(f"✅ {request.symbol} 财务数据同步完成: {success}")
                 
-                # 同步财务数据
-                fin_result = await financial_service.sync_single_stock(
-                    symbol=request.symbol,
-                    data_sources=[request.data_source]
-                )
-                
-                success = fin_result.get(request.data_source, False)
-                result["financial_sync"] = {
-                    "success": success,
-                    "message": "财务数据同步成功" if success else "财务数据同步失败"
-                }
-                logger.info(f"✅ {request.symbol} 财务数据同步完成: {success}")
+                else:
+                    financial_service = await get_financial_sync_service()
+                    
+                    # 同步财务数据
+                    fin_result = await financial_service.sync_single_stock(
+                        symbol=request.symbol,
+                        data_sources=[request.data_source]
+                    )
+                    
+                    success = fin_result.get(request.data_source, False)
+                    result["financial_sync"] = {
+                        "success": success,
+                        "message": "财务数据同步成功" if success else "财务数据同步失败"
+                    }
+                    logger.info(f"✅ {request.symbol} 财务数据同步完成: {success}")
                 
             except Exception as e:
                 logger.error(f"❌ {request.symbol} 财务数据同步失败: {e}")
@@ -340,9 +368,24 @@ async def sync_single_stock(
         # 同步基础数据
         if request.sync_basic:
             try:
+                # 🔥 对于 yfinance_hk，使用专门的同步服务
+                if request.data_source == "yfinance_hk":
+                    service = await get_yfinance_hk_sync_service()
+                    
+                    basic_result = await service.sync_basic_info(
+                        symbols=[request.symbol]
+                    )
+                    
+                    success = basic_result.get("success_count", 0) > 0
+                    result["basic_sync"] = {
+                        "success": success,
+                        "message": f"基础数据同步{'成功' if success else '失败'}"
+                    }
+                    logger.info(f"✅ {request.symbol} 基础数据同步完成: {success}")
+                
                 # 🔥 同步单个股票的基础数据
                 # 参考 basics_sync_service 的实现逻辑
-                if request.data_source == "tushare":
+                elif request.data_source == "tushare":
                     from app.services.basics_sync import (
                         fetch_stock_basic_df,
                         find_latest_trade_date,

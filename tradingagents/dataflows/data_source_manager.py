@@ -36,6 +36,7 @@ class ChinaDataSource(Enum):
     TUSHARE = DataSourceCode.TUSHARE
     AKSHARE = DataSourceCode.AKSHARE
     BAOSTOCK = DataSourceCode.BAOSTOCK
+    DOLT = DataSourceCode.DOLT
 
 
 class USDataSource(Enum):
@@ -500,6 +501,32 @@ class DataSourceManager:
                 logger.warning(f"⚠️ BaoStock数据源不可用: 库未安装")
         else:
             logger.info("ℹ️ BaoStock数据源已在数据库中禁用")
+            
+        # 🔥 检查 Dolt
+        if 'dolt' in enabled_sources_in_db:
+            try:
+                from tradingagents.dataflows.providers.china.dolt import DoltProvider
+                import asyncio
+                
+                # 创建 Provider 并测试连接
+                provider = DoltProvider()
+                loop = asyncio.new_event_loop()
+                try:
+                    connected = loop.run_until_complete(provider.connect())
+                    if connected:
+                        available.append(ChinaDataSource.DOLT)
+                        logger.info("✅ Dolt数据源可用且已启用")
+                    else:
+                        logger.warning("⚠️ Dolt数据源不可用: 数据库连接失败")
+                finally:
+                    loop.close()
+            except ImportError:
+                logger.warning("⚠️ Dolt数据源不可用: 依赖库未安装")
+            except Exception as e:
+                logger.warning(f"⚠️ Dolt数据源不可用: {e}")
+        else:
+            logger.info("ℹ️ Dolt数据源已在数据库中禁用")
+
 
         # TDX (通达信) 已移除
         # 不再检查和支持 TDX 数据源

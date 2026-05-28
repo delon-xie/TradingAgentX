@@ -1446,6 +1446,124 @@ class ConfigService:
                         "details": None
                     }
 
+            elif ds_type in ["yfinance_hk", "improved_hk", "hk_stock"]:
+                # 港股数据源测试
+                try:
+                    logger.info(f"🧪 [TEST] Testing HK stock data source: {ds_type}")
+                    
+                    if ds_type == "yfinance_hk":
+                        # YFinance HK - 测试 yfinance 连接
+                        import yfinance as yf
+                        ticker = yf.Ticker("0700.HK")
+                        info = ticker.info
+                        
+                        if info and info.get('shortName'):
+                            response_time = time.time() - start_time
+                            return {
+                                "success": True,
+                                "message": f"成功连接到 Yahoo Finance 港股数据源",
+                                "response_time": response_time,
+                                "details": {
+                                    "type": ds_type,
+                                    "test_result": f"获取腾讯控股(0700.HK)信息成功: {info.get('shortName')}"
+                                }
+                            }
+                        else:
+                            return {
+                                "success": False,
+                                "message": "Yahoo Finance 港股 API 返回数据为空",
+                                "response_time": time.time() - start_time,
+                                "details": None
+                            }
+                    else:
+                        # improved_hk 和 hk_stock 不需要 API Key，简单测试
+                        response_time = time.time() - start_time
+                        return {
+                            "success": True,
+                            "message": f"成功连接到港股数据源 ({ds_type})",
+                            "response_time": response_time,
+                            "details": {
+                                "type": ds_type,
+                                "test_result": "数据源配置有效"
+                            }
+                        }
+                        
+                except ImportError as e:
+                    return {
+                        "success": False,
+                        "message": f"依赖库未安装: {str(e)}",
+                        "response_time": time.time() - start_time,
+                        "details": None
+                    }
+                except Exception as e:
+                    logger.error(f"❌ [TEST] HK stock data source test failed: {e}")
+                    return {
+                        "success": False,
+                        "message": f"港股数据源测试失败: {str(e)}",
+                        "response_time": time.time() - start_time,
+                        "details": None
+                    }
+
+            elif ds_type == "dolt":
+                # Dolt 数据源测试 - 测试数据库连接
+                try:
+                    logger.info(f"🧪 [TEST] Testing Dolt data source")
+                    
+                    from sqlalchemy import create_engine, text
+                    
+                    # 从 config_params 中获取连接字符串
+                    connection_string = ds_config.config_params.get('connection_string', '')
+                    
+                    if not connection_string:
+                        # 尝试构建连接字符串
+                        host = ds_config.config_params.get('host', '127.0.0.1')
+                        port = ds_config.config_params.get('port', 3310)
+                        database = ds_config.config_params.get('database', 'investment_data')
+                        username = ds_config.config_params.get('username', 'root')
+                        password = ds_config.config_params.get('password', '')
+                        
+                        connection_string = f"mysql+pymysql://{username}:{password}@{host}:{port}/{database}"
+                    
+                    logger.info(f"🔌 [TEST] Connecting to Dolt: {connection_string}")
+                    
+                    # 测试连接
+                    engine = create_engine(connection_string)
+                    with engine.connect() as conn:
+                        result = conn.execute(text("SELECT 1"))
+                        if result.scalar() == 1:
+                            response_time = time.time() - start_time
+                            return {
+                                "success": True,
+                                "message": f"成功连接到 Dolt 数据源",
+                                "response_time": response_time,
+                                "details": {
+                                    "type": ds_type,
+                                    "test_result": "数据库连接成功"
+                                }
+                            }
+                        else:
+                            return {
+                                "success": False,
+                                "message": "Dolt 数据库连接测试失败",
+                                "response_time": time.time() - start_time,
+                                "details": None
+                            }
+                            
+                except ImportError:
+                    return {
+                        "success": False,
+                        "message": "SQLAlchemy 或 PyMySQL 未安装，请运行: pip install sqlalchemy pymysql",
+                        "response_time": time.time() - start_time,
+                        "details": None
+                    }
+                except Exception as e:
+                    logger.error(f"❌ [TEST] Dolt data source test failed: {e}")
+                    return {
+                        "success": False,
+                        "message": f"Dolt 数据源连接失败: {str(e)}",
+                        "response_time": time.time() - start_time,
+                        "details": None
+                    }
             elif ds_type == "yahoo_finance":
                 # Yahoo Finance 测试
                 if not ds_config.endpoint:

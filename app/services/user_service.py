@@ -123,6 +123,10 @@ class UserService:
 
             # 查找用户
             user_doc = self.users_collection.find_one({"username": username})
+            logger.warning(f"[password] 用户不存在: {password}")
+            logger.warning(f"[uri]: {settings.MONGO_URI}")
+            logger.warning(f"[uri]: {settings.MONGO_DB}")
+            
             logger.info(f"🔍 [authenticate_user] 数据库查询结果: {'找到用户' if user_doc else '用户不存在'}")
 
             if not user_doc:

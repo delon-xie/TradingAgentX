@@ -556,6 +556,8 @@ class ForeignStockService:
             'akshare': ('akshare', self._get_hk_info_from_akshare),
             'yahoo_finance': ('yfinance', self._get_hk_info_from_yfinance),
             'finnhub': ('finnhub', self._get_hk_info_from_finnhub),
+            'yfinance_hk': ('yfinance_hk', self._get_hk_kline_from_yfinance_hk),
+            'dolt': ('dolt', self._get_hk_kline_from_dolt),
         }
 
         # 过滤有效数据源并去重
@@ -1833,5 +1835,146 @@ class ForeignStockService:
 
         except Exception as e:
             logger.warning(f"⚠️ AKShare获取港股新闻失败: {e}")
+            raise
+
+    def _get_hk_kline_from_yfinance_hk(self, code: str, period: str, limit: int) -> List[Dict]:
+        """
+        从 YFinanceHKProvider 获取港股K线数据
+        
+        Args:
+            code: 股票代码
+            period: 周期
+            limit: 数据条数
+            
+        Returns:
+            K线数据列表
+        """
+        import pandas as pd
+        from datetime import datetime, timedelta
+        from tradingagents.dataflows.providers.hk.yfinance import YFinanceHKProvider
+        
+        try:
+            # 初始化 Provider
+            provider = YFinanceHKProvider()
+            
+            # 连接
+            import asyncio
+            if not asyncio.get_event_loop().is_running():
+                # 同步调用，手动处理
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                connected = loop.run_until_complete(provider.connect())
+                loop.close()
+            else:
+                raise Exception("需要在异步上下文中使用")
+            
+            if not provider.is_available():
+                raise Exception("YFinanceHK 连接失败")
+            
+            # 计算日期范围
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=limit * 2)  # 多获取一些数据
+            
+            # 获取历史数据
+            df = asyncio.get_event_loop().run_until_complete(
+                provider.get_historical_data(
+                    symbol=code,
+                    start_date=start_date.strftime('%Y-%m-%d'),
+                    end_date=end_date.strftime('%Y-%m-%d')
+                )
+            )
+            
+            if df is None or df.empty:
+                raise Exception("无数据")
+            
+            # 格式化数据
+            kline_data = []
+            for date_idx, row in df.tail(limit).iterrows():
+                date_str = date_idx.strftime('%Y-%m-%d') if hasattr(date_idx, 'strftime') else str(date_idx)
+                kline_data.append({
+                    'date': date_str,
+                    'trade_date': date_str,
+                    'open': float(row.get('Open', row.get('open', 0))),
+                    'high': float(row.get('High', row.get('high', 0))),
+                    'low': float(row.get('Low', row.get('low', 0))),
+                    'close': float(row.get('Close', row.get('close', 0))),
+                    'volume': int(row.get('Volume', row.get('volume', 0))),
+                    'amount': 0.0  # Yahoo Finance 港股不提供成交额
+                })
+            
+            return kline_data
+            
+        except Exception as e:
+            logger.error(f"❌ YFinanceHK 获取K线失败: {e}")
+            raise
+
+    def _get_hk_kline_from_dolt(self, code: str, period: str, limit: int) -> List[Dict]:
+        """
+        从 DoltProvider 获取港股K线数据
+        
+        Args:
+            code: 股票代码
+            period: 周期
+            limit: 数据条数
+            
+        Returns:
+            K线数据列表
+        """
+        import pandas as pd
+        from datetime import datetime, timedelta
+        from tradingagents.dataflows.providers.china.dolt import DoltProvider
+        
+        try:
+            # 初始化 Provider
+            provider = DoltProvider()
+            
+            # 连接
+            import asyncio
+            if not asyncio.get_event_loop().is_running():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                connected = loop.run_until_complete(provider.connect())
+                loop.close()
+            else:
+                raise Exception("需要在异步上下文中使用")
+            
+            if not provider.is_available():
+                raise Exception("Dolt 连接失败")
+            
+            # 计算日期范围
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=limit * 2)
+            
+            # 获取历史数据
+            df = asyncio.get_event_loop().run_until_complete(
+                provider.get_historical_data(
+                    symbol=code,
+                    start_date=start_date.strftime('%Y-%m-%d'),
+                    end_date=end_date.strftime('%Y-%m-%d')
+                )
+            )
+            
+            if df is None or df.empty:
+                raise Exception("无数据")
+            
+            # 格式化数据
+            kline_data = []
+            for date_idx, row in df.tail(limit).iterrows():
+                date_str = date_idx.strftime('%Y-%m-%d') if hasattr(date_idx, 'strftime') else str(date_idx)
+                kline_data.append({
+                    'date': date_str,
+                    'trade_date': date_str,
+                    'open': float(row.get('open', 0)),
+                    'high': float(row.get('high', 0)),
+                    'low': float(row.get('low', 0)),
+                    'close': float(row.get('close', 0)),
+                    'volume': int(row.get('volume', 0)),
+                    'amount': float(row.get('amount', 0))
+                })
+            
+            return kline_data
+            
+        except Exception as e:
+            logger.error(f"❌ Dolt 获取K线失败: {e}")
             raise
 

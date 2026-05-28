@@ -89,7 +89,73 @@
       <!-- 连接配置 -->
       <el-divider content-position="left">连接配置</el-divider>
 
-      <el-form-item label="API端点" prop="endpoint">
+      <!-- Dolt 特殊配置 -->
+      <template v-if="formData.type === 'dolt'">
+        <el-form-item label="主机地址" prop="config_params.host">
+          <el-input
+            v-model="formData.config_params.host"
+            placeholder="localhost"
+          />
+        </el-form-item>
+
+        <el-form-item label="端口" prop="config_params.port">
+          <el-input-number
+            v-model="formData.config_params.port"
+            :min="1"
+            :max="65535"
+            controls-position="right"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="数据库名" prop="config_params.database">
+          <el-input
+            v-model="formData.config_params.database"
+            placeholder="investment_data"
+          />
+        </el-form-item>
+
+        <el-form-item label="用户名" prop="config_params.username">
+          <el-input
+            v-model="formData.config_params.username"
+            placeholder="root"
+          />
+        </el-form-item>
+
+        <el-form-item label="密码" prop="config_params.password">
+          <el-input
+            v-model="formData.config_params.password"
+            type="password"
+            placeholder="留空表示无密码"
+            show-password
+          />
+        </el-form-item>
+
+        <el-alert
+          title="💡 Dolt 配置提示"
+          type="info"
+          :closable="false"
+          class="mb-4"
+        >
+          <template #default>
+            <div>
+              <p>Dolt 是基于 MySQL 的版本控制数据库，需要：</p>
+              <ul style="margin: 8px 0; padding-left: 20px;">
+                <li>确保 MySQL/Dolt 服务正在运行</li>
+                <li>创建数据库：<code>CREATE DATABASE investment_data;</code></li>
+                <li>创建表：<code>final_a_stock_eod_price</code></li>
+              </ul>
+              <p>快速启动（Docker）：</p>
+              <code style="display: block; background: #f5f7fa; padding: 8px; margin-top: 8px; border-radius: 4px;">
+                docker run -d --name mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -e MYSQL_DATABASE=investment_data -p 3306:3306 mysql:8.0
+              </code>
+            </div>
+          </template>
+        </el-alert>
+      </template>
+
+      <!-- 标准 API 端点配置（非 Dolt 数据源） -->
+      <el-form-item v-else label="API端点" prop="endpoint">
         <el-input
           v-model="formData.endpoint"
           placeholder="请输入API端点URL"
@@ -97,7 +163,11 @@
       </el-form-item>
 
       <!-- API Key 输入框 -->
-      <el-form-item label="API Key" prop="api_key">
+      <el-form-item 
+        v-if="needsApiKey" 
+        label="API Key" 
+        prop="api_key"
+      >
         <el-input
           v-model="formData.api_key"
           type="password"
@@ -291,6 +361,20 @@ const marketCategories = ref<MarketCategory[]>([])
 // Computed
 const isEdit = computed(() => !!props.config)
 
+// 判断是否需要显示 API Key 字段
+const needsApiKey = computed(() => {
+  const type = formData.value.type?.toLowerCase() || ''
+  // Dolt 不需要 API Key，使用数据库连接配置
+  if (type === 'dolt') return false
+  
+  // 以下数据源需要 API Key
+  const requiresKey = [
+    'tushare', 'finnhub', 'alpha_vantage', 'iex_cloud', 
+    'wind', 'choice', 'quandl'
+  ]
+  return requiresKey.includes(type)
+})
+
 // 判断是否需要显示 API Secret 字段
 const needsApiSecret = computed(() => {
   const type = formData.value.type?.toLowerCase() || ''
@@ -327,6 +411,25 @@ const handleTypeChange = () => {
         formData.value.display_name = sourceInfo.label
       }
     }
+
+    // 🔥 根据数据源类型初始化 config_params
+    if (selectedType === 'dolt') {
+      // Dolt 数据源：初始化数据库连接配置
+      formData.value.config_params = {
+        host: 'localhost',
+        port: 3306,
+        database: 'investment_data',
+        username: 'root',
+        password: ''
+      }
+      // 清空不需要的字段
+      formData.value.api_key = ''
+      formData.value.endpoint = ''
+      console.log('✅ 已初始化 Dolt 配置参数')
+    } else {
+      // 其他数据源：清空 config_params
+      formData.value.config_params = {}
+    }
   }
 }
 
@@ -343,7 +446,13 @@ const defaultFormData = {
   rate_limit: 100,
   enabled: true,
   priority: 0,
-  config_params: {} as Record<string, any>,
+  config_params: {
+    host: 'localhost',
+    port: 3306,
+    database: 'investment_data',
+    username: 'root',
+    password: ''
+  } as Record<string, any>,
   description: '',
   market_categories: [] as string[]
 }
@@ -376,6 +485,32 @@ const dataSourceTypes = [
     value: 'baostock',
     register_url: 'http://baostock.com/',
     register_guide: 'BaoStock 是开源免费的证券数据平台，无需注册即可使用。访问官网了解更多：'
+  },
+  {
+    label: 'Dolt',
+    value: 'dolt',
+    register_url: 'https://www.dolthub.com/',
+    register_guide: 'Dolt 是带版本控制的 SQL 数据库，可以本地部署。查看文档了解如何设置：'
+  },
+
+  // 港股数据源
+  {
+    label: 'Yahoo Finance 港股',
+    value: 'yfinance_hk',
+    register_url: 'https://finance.yahoo.com/',
+    register_guide: 'Yahoo Finance 提供免费的港股数据，无需注册即可使用。访问官网了解更多：'
+  },
+  {
+    label: '改进版港股数据',
+    value: 'improved_hk',
+    register_url: 'https://akshare.akfamily.xyz/',
+    register_guide: '改进版港股数据基于 AKShare，无需注册即可使用。访问官网了解更多：'
+  },
+  {
+    label: '港股基础数据',
+    value: 'hk_stock',
+    register_url: 'https://akshare.akfamily.xyz/',
+    register_guide: '港股基础数据基于开源数据源，无需注册即可使用。访问官网了解更多：'
   },
 
   // 美股数据源
@@ -518,6 +653,11 @@ watch(
       formData.value = {
         ...defaultFormData,
         ...config,
+        // 确保 config_params 正确合并
+        config_params: {
+          ...defaultFormData.config_params,
+          ...(config.config_params || {})
+        },
         market_categories: config.market_categories || []
       }
       // 初始化参数键列表
@@ -542,6 +682,11 @@ watch(
         formData.value = {
           ...defaultFormData,
           ...props.config,
+          // 确保 config_params 正确合并
+          config_params: {
+            ...defaultFormData.config_params,
+            ...(props.config.config_params || {})
+          },
           market_categories: props.config.market_categories || []
         }
         paramKeys.value = Object.keys(props.config.config_params || {})

@@ -35,7 +35,7 @@ class DoltProvider(BaseStockDataProvider):
         super().__init__("Dolt")
         
         # 默认连接配置
-        self.connection_string = connection_string or "mysql+pymysql://root:@localhost:3310/investment_data"
+        self.connection_string = connection_string or "mysql+pymysql://root:@127.0.0.1:3310/investment_data"
         self.db_kwargs = db_kwargs
         
         self.engine: Optional[Engine] = None

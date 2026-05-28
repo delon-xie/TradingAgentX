@@ -40,7 +40,9 @@ class DataSourceCode(str, Enum):
     IEX_CLOUD = "iex_cloud"       # IEX Cloud - 美股实时数据
     
     # ==================== 港股数据源 ====================
-    # 注意：AKShare 也支持港股，已在上面定义
+    YFINANCE_HK = "yfinance_hk"      # Yahoo Finance 港股数据
+    IMPROVED_HK = "improved_hk"      # 改进版港股数据
+    HK_STOCK = "hk_stock"            # 港股基础数据
     
     # ==================== 专业数据源 ====================
     WIND = "wind"        # Wind 万得 - 专业金融终端
@@ -50,7 +52,8 @@ class DataSourceCode(str, Enum):
     QUANDL = "quandl"        # Quandl - 经济和金融数据
     LOCAL_FILE = "local_file"  # 本地文件数据源
     CUSTOM = "custom"        # 自定义数据源
-
+    
+    DOLT = "dolt"            # Dolt - 带版本控制的数据库
 
 @dataclass
 class DataSourceInfo:
@@ -273,6 +276,60 @@ DATA_SOURCE_REGISTRY: Dict[str, DataSourceInfo] = {
         requires_api_key=False,
         is_free=True,
         features=["自定义接口", "灵活配置"],
+    ),
+    
+    # Dolt
+    DataSourceCode.DOLT: DataSourceInfo(
+        code=DataSourceCode.DOLT,
+        name="Dolt",
+        display_name="Dolt-CN",
+        provider="dolt",
+        description="Dolt-CN",
+        supported_markets=["a_shares"],
+        requires_api_key=False,
+        is_free=True,
+        features=["本地数据库", "版本控制"],
+    ),
+    
+    # YFinance HK
+    DataSourceCode.YFINANCE_HK: DataSourceInfo(
+        code="yfinance_hk",
+        name="YFinanceHK",
+        display_name="Yahoo Finance 港股",
+        provider="Yahoo Finance",
+        description="基于 yfinance 的港股数据接口，支持实时行情和历史数据",
+        supported_markets=["hk_stocks"],
+        requires_api_key=False,
+        is_free=True,
+        official_website="https://finance.yahoo.com",
+        documentation_url="https://pypi.org/project/yfinance/",
+        features=["历史行情", "实时行情", "港股专注", "完全免费"],
+    ),
+    
+    # Improved HK
+    DataSourceCode.IMPROVED_HK: DataSourceInfo(
+        code="improved_hk",
+        name="ImprovedHK",
+        display_name="改进版港股数据",
+        provider="TradingAgentX",
+        description="改进的港股数据获取工具，解决API速率限制问题",
+        supported_markets=["hk_stocks"],
+        requires_api_key=False,
+        is_free=True,
+        features=["缓存优化", "速率限制处理", "港股专注", "稳定可靠"],
+    ),
+    
+    # HK Stock
+    DataSourceCode.HK_STOCK: DataSourceInfo(
+        code="hk_stock",
+        name="HKStock",
+        display_name="港股数据",
+        provider="TradingAgentX",
+        description="港股数据接口，提供港股基础信息和行情数据",
+        supported_markets=["hk_stocks"],
+        requires_api_key=False,
+        is_free=True,
+        features=["基础信息", "行情数据", "港股专注"],
     ),
 }
 

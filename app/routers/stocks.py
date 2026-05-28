@@ -45,7 +45,7 @@ def _detect_market_and_code(code: str) -> Tuple[str, str]:
 
     # 港股：带.HK后缀
     if code.endswith('.HK'):
-        return ('HK', code[:-3].zfill(5))  # 移除.HK，补齐到5位
+        return ('HK', code[:-3].zfill(4))  # 移除.HK，补齐到4位
 
     # 美股：纯字母
     if re.match(r'^[A-Z]+$', code):

@@ -10,6 +10,8 @@ try:
         AKShareProvider,
         TushareProvider,
         BaostockProvider as BaoStockProvider,
+        DoltProvider,
+        DOLT_AVAILABLE,
         AKSHARE_AVAILABLE,
         TUSHARE_AVAILABLE,
         BAOSTOCK_AVAILABLE
@@ -30,7 +32,14 @@ except ImportError:
         from .baostock_provider import BaoStockProvider
     except ImportError:
         BaoStockProvider = None
+        
+    # 导入 Dolt 提供器
+    try:
+        from .dolt import DoltProvider
+    except ImportError:
+        DoltProvider = None
 
+    DOLT_AVAILABLE = DoltProvider is not None
     AKSHARE_AVAILABLE = AKShareProvider is not None
     TUSHARE_AVAILABLE = TushareProvider is not None
     BAOSTOCK_AVAILABLE = BaoStockProvider is not None
@@ -40,11 +49,15 @@ try:
     from .hk import (
         ImprovedHKStockProvider,
         get_improved_hk_provider,
+        YFinanceHKProvider,
+        YFINANCE_HK_AVAILABLE,
         HK_PROVIDER_AVAILABLE
     )
 except ImportError:
     ImprovedHKStockProvider = None
     get_improved_hk_provider = None
+    YFinanceHKProvider = None
+    YFINANCE_HK_AVAILABLE = False
     HK_PROVIDER_AVAILABLE = False
 
 # 导入美股提供器
@@ -103,6 +116,8 @@ __all__ = [
     'TushareProvider',
     'AKShareProvider',
     'BaoStockProvider',
+    'DoltProvider',
+    'DOLT_AVAILABLE',
     'AKSHARE_AVAILABLE',
     'TUSHARE_AVAILABLE',
     'BAOSTOCK_AVAILABLE',
@@ -110,6 +125,8 @@ __all__ = [
     # 港股
     'ImprovedHKStockProvider',
     'get_improved_hk_provider',
+    'YFinanceHKProvider',
+    'YFINANCE_HK_AVAILABLE',
     'HK_PROVIDER_AVAILABLE',
 
     # 美股
