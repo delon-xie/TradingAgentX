@@ -845,7 +845,10 @@ watch(period, () => { fetchKline() })
 async function fetchKline() {
   try {
     const param = periodLabelToParam(period.value)
-    const res = await stocksApi.getKline(code.value, param as any, 200, 'none')
+    
+    // 🔥 限制最多加载5年的数据（约1825个交易日）
+    const MAX_KLINE_DAYS = 1825  // 5年 * 365天
+    const res = await stocksApi.getKline(code.value, param as any, MAX_KLINE_DAYS, 'none')
     const d: any = (res as any)?.data || {}
     klineSource.value = d.source
     const items: any[] = Array.isArray(d.items) ? d.items : []

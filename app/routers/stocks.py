@@ -446,6 +446,14 @@ async def get_kline(
     valid_periods = {"day","week","month","5m","15m","30m","60m"}
     if period not in valid_periods:
         raise HTTPException(status_code=400, detail=f"不支持的period: {period}")
+    
+    # 🔥 限制最多加载5年的数据（约1825个交易日）
+    MAX_KLINE_LIMIT = 1825  # 5年 * 365天
+    if limit > MAX_KLINE_LIMIT:
+        logger.warning(f"⚠️ K线请求limit={limit}超过最大值{MAX_KLINE_LIMIT}，已自动限制")
+        limit = MAX_KLINE_LIMIT
+    if limit < 1:
+        limit = 1
 
     # 检测市场类型
     market, normalized_code = _detect_market_and_code(code)
